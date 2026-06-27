@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { CalculateTaxDto } from '../dto/tax.dto';
+
 
 @Injectable()
 export class TaxService {
@@ -6,16 +8,14 @@ export class TaxService {
         return 'This is a tax message from the TaxService.';
     }
 
-    calculateTax(taxRate: number, income: number){
-        const tax = income * taxRate / 100;
+    calculateTax(dto: CalculateTaxDto){
+        const { income, taxRate } = dto;
+        const tax = (income * taxRate) / 100;
         return {
-            success: true,
-            data: {
                 income,
                 tax,
                 total: income + tax,
                 totalIncomeAfterTax: income - tax
-            }
         };
     }
 }
