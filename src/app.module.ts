@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TaxModule } from './modules/tax/tax.module';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/user/user.module';
+import { PrismaModule } from './common/prisma/prisma.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -11,7 +13,9 @@ import appConfig from './config/app.config';
       load: [appConfig],
     }),
     TaxModule,
-    AuthModule
+    AuthModule,
+    UserModule,
+    PrismaModule
   ],
 })
 export class AppModule {}

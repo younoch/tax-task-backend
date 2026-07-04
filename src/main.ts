@@ -9,7 +9,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-   // ✅ Config
+  // ✅ Config
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port') || 4000;
 
@@ -36,7 +36,16 @@ async function bootstrap() {
     .setTitle('Tax API')
     .setDescription('API for tax calculation')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+        name: 'Authorization',
+      },
+      'access-token', // 👈 important
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
