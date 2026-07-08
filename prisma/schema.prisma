@@ -14,16 +14,19 @@ model User {
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  taxes     Tax[]
+  taxes     TaxTask[]
 }
 
-model Tax {
+model TaxTask {
   id        String   @id @default(uuid())
-  title     String
-  amount    Float
+  income    Float
+  expenses  Float
+  taxRate   Float
+  result    Float?
+  status    TaskStatus @default(PENDING)
   userId    String
-  status    TaskStatus  @default(PENDING)
   createdAt DateTime @default(now())
+
   user      User     @relation(fields: [userId], references: [id])
 }
 

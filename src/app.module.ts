@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TaxModule } from './modules/tax/tax.module';
+import { TaxTaskModule } from './modules/taxTask/taxTask.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -12,10 +12,10 @@ import appConfig from './config/app.config';
       isGlobal: true,
       load: [appConfig],
     }),
-    TaxModule,
+    TaxTaskModule,
     AuthModule,
     UserModule,
-    PrismaModule
+    PrismaModule,
   ],
 })
 export class AppModule {}
