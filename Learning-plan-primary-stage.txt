@@ -1,0 +1,398 @@
+PROJECT: Tax Task Processing System (Backend)
+
+LEARNER CONTEXT:
+- New to backend, expert in frontend (Next.js)
+- Frontend lives in a SEPARATE repo — not detailed here, since frontend is the
+  comfort zone and needs no hand-holding
+- Testing strategy: each phase/sub-phase gets verified via Postman/Swagger AND
+  a quick check from the separate frontend repo — frontend details are out of
+  scope for this plan
+- Complex phases are broken into sub-phases so nothing is swallowed whole
+
+ARCHITECTURE:
+Monolithic Modular (NestJS) → evolving to Docker-orchestrated multi-service
+- Start as single application
+- Feature-based modules
+- Docker introduced later (Phase 9), not avoided permanently
+
+CORE PRINCIPLES:
+1. Start simple → evolve gradually
+2. Each phase (or sub-phase) must produce a working, visibly testable system
+3. No premature abstraction
+4. Design for extension, not prediction
+5. Keep service layer clean and extensible
+6. Test every step: automated tests + Postman/Swagger + frontend repo (CORS
+   enabled from day one so the frontend can hit it anytime)
+7. Production-readiness habits introduced early, not bolted on later
+8. If a phase feels heavy, split it into sub-phases — don't push through in one jump
+
+FOLDER STRUCTURE (BASE) — backend repo only:
+
+src/
+ ├── modules/
+ │    ├── tax/
+ │    │    ├── controller/
+ │    │    ├── service/
+ │    │    ├── dto/
+ │    │    ├── repository/      (Phase 2+)
+ │    │    ├── queue/           (Phase 7+)
+ │    │    └── tax.module.ts
+ │    │
+ │    ├── auth/                 (Phase 5)
+ │    └── user/                 (Phase 5)
+ │
+ ├── common/
+ │    ├── config/               (Phase 1.5)
+ │    ├── filters/              (Phase 1.5 — NOT optional)
+ │    ├── logger/               (Phase 6)
+ │    ├── guards/                (Phase 5)
+ │
+ └── main.ts
+
+
+========================================
+PHASE PLAN (STRICT ORDER)
+========================================
+
+PHASE 1 — BASIC API (NO DB)
+
+Goal:
+- Understand NestJS flow
+
+Features:
+- GET /tax/tasks
+- POST /tax/tasks
+- In-memory storage
+
+Flow:
+Controller → Service → Array
+
+Test:
+- Postman: GET/POST
+- Frontend repo: confirm it can call these endpoints (CORS check)
+
+Rules:
+- No DTO complexity
+- No extra folders
+- Keep logic minimal
+
+
+----------------------------------------
+
+PHASE 1.5 — CONFIG & ERROR HANDLING FOUNDATION
+
+Goal:
+- Set up habits that are painful to retrofit later
+
+Add:
+- @nestjs/config + .env file
+- Env validation (joi or class-validator based schema)
+- Global exception filter (common/filters)
+- Global ValidationPipe (whitelist + forbidNonWhitelisted)
+- Enable CORS for the frontend repo's origin
+
+Test:
+- Postman: send a deliberately bad request, confirm clean structured error
+  (not raw stack trace)
+
+Rules:
+- Do this before DB credentials enter the codebase
+- This is not optional scaffolding — treat as core
+
+
+----------------------------------------
+
+PHASE 2 — DATABASE (Prisma + PostgreSQL)
+
+Sub-phase 2a: Setup
+- Install Prisma, connect PostgreSQL, run first migration
+- Test: `prisma studio` to visually confirm table exists (no app code yet)
+
+Sub-phase 2b: Wire into Service
+- Replace in-memory array with Prisma calls in the service
+- Add repository layer (preferred, not optional — keeps Prisma swappable later)
+- Test: Postman — confirm tasks now survive a server restart
+
+Flow:
+Controller → Service → Repository → Prisma → DB
+
+Rules:
+- Keep queries simple
+- No optimization yet
+
+
+----------------------------------------
+
+PHASE 3 — VALIDATION + TESTING HABIT
+
+Goal:
+- Ensure data integrity
+- Start automated testing discipline
+
+Add:
+- class-validator
+- DTOs
+- Jest unit tests for service layer (start small: 1-2 tests per method)
+
+Test:
+- Postman: invalid payloads return proper 400 with field-level errors
+- Jest: first unit test suite
+
+Rules:
+- Validate only what is needed
+- Avoid over-validation
+- Every new service method from this point forward gets at least one unit test
+
+
+----------------------------------------
+
+PHASE 4 — SWAGGER
+
+Goal:
+- API documentation & testing
+
+Add:
+- @nestjs/swagger
+
+Test:
+- Swagger UI itself is the test here — confirm every existing endpoint is
+  documented and callable from it
+
+Rules:
+- Document only existing endpoints
+- Keep annotations minimal
+
+
+----------------------------------------
+
+PHASE 5 — AUTH (JWT)
+
+This is a complex phase — split it:
+
+Sub-phase 5a: Register + Login (no guards yet)
+- Build /auth/register, /auth/login returning a JWT
+- Test: Postman — register, login, copy token, decode it (jwt.io) to confirm
+  payload is correct
+
+Sub-phase 5b: Protect routes
+- Add Guards to existing tax routes
+- Test: Postman — request without token → 401; request with token → 200
+
+Sub-phase 5c: User-scoped data
+- Tasks now scoped to logged-in user
+- Test: Postman with two different test users' tokens — confirm task lists
+  don't leak between them
+
+Rules:
+- Keep auth separate module
+- Do not mix auth logic in tax module
+- Add integration tests for protected routes (extends Phase 3 testing habit)
+
+
+----------------------------------------
+
+PHASE 6 — LOGGER (Pino)
+
+Goal:
+- Observability
+
+Add:
+- Pino logger
+- Basic health-check endpoint (/health)
+
+Test:
+- Postman: hit /health, confirm response
+- Manually trigger an error and confirm it's visible in logs
+
+Rules:
+- Log important events only
+- Avoid excessive logging
+
+
+----------------------------------------
+
+PHASE 7 — QUEUE (RabbitMQ)
+
+This is the most complex phase so far — split it:
+
+Sub-phase 7a: Queue plumbing only
+- Set up RabbitMQ, publish a message on task creation, consume it with a
+  bare-minimum worker that just logs the message
+- Test: create a task via Postman, watch worker logs print — no DB write yet,
+  just proving the pipe works
+
+Sub-phase 7b: Worker does real work
+- Worker actually processes the job and writes a result back to DB
+- Decide explicitly: in-process consumer vs separate deployable process —
+  recommend separate process (same pattern as your Socket.io migration)
+- Test: Postman — poll the task status endpoint, confirm it flips from
+  "processing" to "done" after the worker finishes
+
+Sub-phase 7c: Failure handling
+- Add retry strategy with backoff
+- Add Dead Letter Queue (DLQ) for jobs that exhaust retries
+- Test: deliberately throw an error inside the worker and confirm the job
+  lands in the DLQ instead of silently disappearing or retrying forever
+
+Flow:
+Controller → Service → Queue → Worker → DB
+
+Rules:
+- Do not change existing service logic drastically
+- Add queue as extension
+- Every job must have a defined failure path (DLQ), not just a happy path
+
+
+----------------------------------------
+
+PHASE 8 — REDIS
+
+Sub-phase 8a: Caching
+- Cache one read-heavy endpoint (e.g. task list)
+- Test: Postman — time the first request (cache miss) vs second (cache hit);
+  confirm cache invalidates after a new task is created
+
+Sub-phase 8b: Pub/Sub + Socket.io
+- Redis Pub/Sub channel connected to Socket.io for streaming job/AI updates
+  (required if this backend powers the tax app — not optional)
+- Test: a minimal socket.io-client test script (backend repo, throwaway) that
+  connects and logs incoming events — full real-time UI verification happens
+  later in the frontend repo, not here
+
+Rules:
+- Add caching only when a measured need exists
+- Document which channels Pub/Sub uses and who subscribes
+
+
+----------------------------------------
+
+PHASE 9 — DOCKER COMPOSE
+
+Sub-phase 9a: Single service
+- Dockerize just the NestJS app first, run it alongside local Postgres/RabbitMQ/Redis
+- Test: Postman against the dockerized app exactly as before — no behavior
+  change expected; isolates Docker-specific issues from app logic issues
+
+Sub-phase 9b: Full compose
+- docker-compose.yml covering: app, worker (separate process), Postgres,
+  RabbitMQ, Redis
+- Apply Fedora/SELinux lessons already learned (:z volume labels, avoid
+  docker-compose overriding custom Dockerfile builds, prefer home-directory
+  project location)
+- Test: full Postman collection run + frontend repo pointed at the composed
+  stack — this is the integration test of everything built so far
+
+Rules:
+- Don't skip this thinking "Docker is for later" — distributed-systems mastery
+  requires this step
+
+
+----------------------------------------
+
+PHASE 10 — PRODUCTION HARDENING
+
+Goal:
+- Close the gap between "working" and "production-ready"
+
+Add:
+- Rate limiting / throttling (@nestjs/throttler)
+- Graceful shutdown handling (close DB/queue connections on SIGTERM)
+- Basic monitoring/metrics hook (even just structured logs to start)
+
+Test:
+- Postman Runner / a quick script: hammer an endpoint with rapid repeated
+  requests, confirm throttling kicks in with a clean error rather than the
+  server choking
+
+Rules:
+- Lightweight additions only — don't over-engineer
+- Revisit this phase as the system grows; it's not "finished" after one pass
+
+
+========================================
+EXTENSIBILITY STRATEGY
+========================================
+
+Design Pattern:
+- Service layer is the core
+- Everything extends around it
+
+Example:
+
+Phase 1:
+Controller → Service → DB
+
+Phase 7:
+Controller → Service → Queue → Worker → DB
+
+Rule:
+- Service methods should remain stable
+- New tech should plug in, not rewrite logic
+
+
+----------------------------------------
+
+EXTENSION POINTS:
+
+1. Service Layer
+   - Central business logic
+   - Future queue/socket hooks go here
+
+2. Repository Layer
+   - Abstract DB access
+
+3. Event Hooks (lightweight)
+
+Example:
+
+createTask(data):
+  task = save to DB
+
+  // future extension
+  // queue.add(task.id)
+  // emit event
+
+  return task
+
+
+========================================
+STRICTLY AVOID
+========================================
+
+- Microservices (premature split — monolith-first is correct)
+- Over-engineering
+- Unused abstraction
+- Pre-creating future folders
+- Adding all tech at once
+- Treating "optional" scaffolding (config, error handling, tests) as skippable —
+  these are now core, not optional
+- Building or detailing frontend work in this repo/plan — that's a separate,
+  already-mastered domain
+
+
+========================================
+DEVELOPMENT LOOP
+========================================
+
+For each phase (or sub-phase, when split):
+
+1. Implement feature
+2. Write/extend automated tests
+3. Test manually (Postman / Swagger)
+4. Handle edge cases
+5. Refactor (if needed)
+6. Move to next (sub-)phase
+
+
+========================================
+FINAL OBJECTIVE
+========================================
+
+Build a system that is:
+
+- Simple initially
+- Gradually extensible
+- Cleanly structured
+- Verifiable at every step via Postman/Swagger, with the frontend repo as the
+  final consumer once an API surface is stable
+- Actually production-ready by Phase 10 (not just "ready in spirit")

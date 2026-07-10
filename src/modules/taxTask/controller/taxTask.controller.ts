@@ -27,11 +27,11 @@ export class TaxTaskController {
   @ApiBody({ type: CreateTaxDto })
   @ApiResponse({ status: 201, description: 'Tax task created successfully' })
   createTax(@Body() body: CreateTaxDto, @CurrentUser() user: JwtUser) {
-    return this.taxTaskService.create(body, user.id);
+    return this.taxTaskService.create(body, user.userId);
   }
 
   @Get()
   findAll(@CurrentUser() user: JwtUser) {
-    return this.taxTaskService.findAll(user.id);
+    return this.taxTaskService.findAll(user.userId);
   }
 }
