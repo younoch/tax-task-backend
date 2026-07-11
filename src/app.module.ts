@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { Params } from 'nestjs-pino';
 
 import { TaxTaskModule } from './modules/taxTask/taxTask.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -14,20 +15,32 @@ import appConfig from './config/app.config';
       isGlobal: true,
       load: [appConfig],
     }),
-    LoggerModule.forRoot({
-      pinoHttp: {
-        level: 'info',
 
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
+    // ✅ FIX: use forRootAsync + typed config
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService): Params => ({
+        pinoHttp: {
+          level: configService.get<string>('LOG_LEVEL') || 'info',
+
+          transport:
+            configService.get<string>('NODE_ENV') !== 'production'
+              ? {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    translateTime: 'HH:MM:ss',
+                    ignore: 'pid,hostname',
+                    singleLine: true,
+                  },
+                }
+              : undefined,
+
+          autoLogging: true,
         },
-      },
+      }),
     }),
+
     TaxTaskModule,
     AuthModule,
     UserModule,

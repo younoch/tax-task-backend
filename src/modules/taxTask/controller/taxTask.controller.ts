@@ -6,7 +6,7 @@ import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import type { JwtUser } from 'src/common/types/jwt-user.type';
+import type { JwtUser } from '@/common/types/jwt-user.type';
 
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)

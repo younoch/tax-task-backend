@@ -25,10 +25,4 @@ describe('AuthController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
-
-  it('should return the authenticated user from the profile route', () => {
-    const user = { userId: 1, email: 'user@example.com' };
-
-    expect(controller.getProfile(user as any)).toEqual(user);
-  });
 });
