@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LoggerModule } from 'nestjs-pino';
-import { Params } from 'nestjs-pino';
+import { LoggerModule, Params } from 'nestjs-pino';
+import { IncomingMessage, ServerResponse } from 'http';
 
 import { TaxTaskModule } from './modules/taxTask/taxTask.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { HealthModule } from './modules/health/health.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -16,7 +17,6 @@ import appConfig from './config/app.config';
       load: [appConfig],
     }),
 
-    // ✅ FIX: use forRootAsync + typed config
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService): Params => ({
@@ -37,6 +37,23 @@ import appConfig from './config/app.config';
               : undefined,
 
           autoLogging: true,
+
+          serializers: {
+            req(req: IncomingMessage) {
+              return {
+                method: req.method,
+                url: req.url,
+              };
+            },
+            res(res: ServerResponse) {
+              return {
+                statusCode: res.statusCode,
+              };
+            },
+          },
+          customSuccessMessage: (req, res) => {
+            return `${req.method} ${req.url} ${res.statusCode}`;
+          },
         },
       }),
     }),
@@ -45,6 +62,7 @@ import appConfig from './config/app.config';
     AuthModule,
     UserModule,
     PrismaModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
