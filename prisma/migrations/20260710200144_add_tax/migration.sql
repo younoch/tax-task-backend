@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "TaxTask" ADD COLUMN     "tax" DOUBLE PRECISION;
