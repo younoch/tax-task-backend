@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule, Params } from 'nestjs-pino';
 import { IncomingMessage, ServerResponse } from 'http';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { TaxTaskModule } from './modules/taxTask/taxTask.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
+import { CleanupModule } from './modules/cleanup/cleanup.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -57,12 +59,14 @@ import appConfig from './config/app.config';
         },
       }),
     }),
+    ScheduleModule.forRoot(),
 
     TaxTaskModule,
     AuthModule,
     UserModule,
     PrismaModule,
     HealthModule,
+    CleanupModule,
   ],
 })
 export class AppModule {}

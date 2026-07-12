@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';   // using your alias
 import { CreateTaxDto } from '../dto/create-tax.dto';
-
+import { TaxTaskRepository } from '../repository/taxTask.repository';
 
 @Injectable()
 export class TaxTaskService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly taxTaskRepository: TaxTaskRepository) {}
 
   // ✅ 1. Tax Calculation (Pure Logic)
   calculateTax(dto: CreateTaxDto) {
@@ -25,7 +25,7 @@ export class TaxTaskService {
   async create(dto: CreateTaxDto, userId: string) {
     const result = this.calculateTax(dto);
 
-    return this.prisma.taxTask.create({
+    return this.taxTaskRepository.create({
       data: {
         ...dto,
         ...result,
@@ -37,36 +37,33 @@ export class TaxTaskService {
 
   // ✅ 3. Get All
   async findAll(userId: string) {
-    return this.prisma.taxTask.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.taxTaskRepository.findAll(userId);
   }
 
   // ✅ 4. Get One
   async findOne(id: string, userId: string) {
-    return this.prisma.taxTask.findFirst({
-      where: { id, userId },
-    });
+    return this.taxTaskRepository.findById(id, userId);
   }
 
   // ✅ 5. Update
   async update(id: string, dto: CreateTaxDto, userId: string) {
     const result = this.calculateTax(dto);
 
-    return this.prisma.taxTask.update({
-      where: { id, userId },
-      data: {
-        ...dto,
-        ...result,
-      },
+    return this.taxTaskRepository.update(id, {
+      ...dto,
+      ...result,
     });
   }
 
   // ✅ 6. Delete
-  async remove(id: string, userId: string) {
-    return this.prisma.taxTask.delete({
-      where: { id, userId },
-    });
+  async softDelete(id: string, userId: string) {
+    return this.taxTaskRepository.softDelete(id, userId);
   }
+
+  // ✅ 7. Restore
+  async restore(id: string, userId: string) {
+    return this.taxTaskRepository.restore(id, userId);
+  }
+
+  
 }

@@ -31,7 +31,38 @@ export class TaxTaskController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all tax tasks' })
+  @ApiResponse({ status: 200, description: 'List of tax tasks' })
   findAll(@CurrentUser() user: JwtUser) {
     return this.taxTaskService.findAll(user.userId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a tax task by ID' })
+  @ApiResponse({ status: 200, description: 'Tax task details' })
+  findOne(@CurrentUser() user: JwtUser, @Body('id') id: string) {
+    return this.taxTaskService.findOne(id, user.userId);
+  }
+
+  @Post(':id')
+  @ApiOperation({ summary: 'Update a tax task by ID' })
+  @ApiBody({ type: CreateTaxDto })
+  @ApiResponse({ status: 200, description: 'Tax task updated successfully' })
+  update(@CurrentUser() user: JwtUser, @Body('id') id: string, @Body() body: CreateTaxDto) {
+    return this.taxTaskService.update(id, body, user.userId);
+  }
+
+  @Post(':id/soft-delete')
+  @ApiOperation({ summary: 'Delete a tax task by ID' })
+  @ApiResponse({ status: 200, description: 'Tax task deleted successfully' })
+  softDelete(@CurrentUser() user: JwtUser, @Body('id') id: string) {
+    return this.taxTaskService.softDelete(id, user.userId);
+  }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore a tax task by ID' })
+  @ApiResponse({ status: 200, description: 'Tax task restored successfully' })
+  restore(@CurrentUser() user: JwtUser, @Body('id') id: string) {
+    return this.taxTaskService.restore(id, user.userId);
   }
 }
