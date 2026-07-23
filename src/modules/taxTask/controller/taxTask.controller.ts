@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Delete, Param, Query } from '@nestjs/common';
 import { TaxTaskService } from '../service/taxTask.service';
 import { CreateTaxDto } from '../dto/create-tax.dto';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -40,29 +40,29 @@ export class TaxTaskController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a tax task by ID' })
   @ApiResponse({ status: 200, description: 'Tax task details' })
-  findOne(@CurrentUser() user: JwtUser, @Body('id') id: string) {
+  findOne(@CurrentUser() user: JwtUser, @Param('id') id: string) {
     return this.taxTaskService.findOne(id, user.userId);
   }
 
-  @Post(':id')
+  @Patch(':id')
   @ApiOperation({ summary: 'Update a tax task by ID' })
   @ApiBody({ type: CreateTaxDto })
   @ApiResponse({ status: 200, description: 'Tax task updated successfully' })
-  update(@CurrentUser() user: JwtUser, @Body('id') id: string, @Body() body: CreateTaxDto) {
+  update(@CurrentUser() user: JwtUser, @Param('id') id: string, @Body() body: CreateTaxDto) {
     return this.taxTaskService.update(id, body, user.userId);
   }
 
-  @Post(':id/soft-delete')
+  @Delete(':id')
   @ApiOperation({ summary: 'Delete a tax task by ID' })
   @ApiResponse({ status: 200, description: 'Tax task deleted successfully' })
-  softDelete(@CurrentUser() user: JwtUser, @Body('id') id: string) {
+  softDelete(@CurrentUser() user: JwtUser, @Param('id') id: string) {
     return this.taxTaskService.softDelete(id, user.userId);
   }
 
-  @Post(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore a tax task by ID' })
   @ApiResponse({ status: 200, description: 'Tax task restored successfully' })
-  restore(@CurrentUser() user: JwtUser, @Body('id') id: string) {
+  restore(@CurrentUser() user: JwtUser, @Param('id') id: string) {
     return this.taxTaskService.restore(id, user.userId);
   }
 }

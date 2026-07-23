@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Logger } from 'nestjs-pino/Logger';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { PrismaService } from '@/common/prisma/prisma.service';
 
 @Injectable()
 export class CleanupService {
@@ -10,7 +10,7 @@ export class CleanupService {
     private logger: Logger,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCleanup() {
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);

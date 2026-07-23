@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 @Injectable()
 export class TaxTaskRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: any) {
+  async create(data: Prisma.TaxTaskUncheckedCreateInput) {
     return this.prisma.taxTask.create({ data });
   }
 
@@ -28,7 +29,7 @@ export class TaxTaskRepository {
     });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.TaxTaskUncheckedCreateInput) {
     return this.prisma.taxTask.update({
       where: { id },
       data,
