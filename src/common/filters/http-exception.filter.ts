@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { Response, Request } from 'express';
+import { Prisma } from '@prisma/client';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -15,23 +16,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | object = 'Internal server error';
 
-let message: string | object = 'Internal server error';
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      if (exception.code === 'P2025') {
+        status = HttpStatus.NOT_FOUND;
+        message = 'Record not found';
+      }
+    } else if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
 
-if (exception instanceof HttpException) {
-  const res = exception.getResponse();
-
-  if (typeof res === 'string') {
-    message = res;
-  } else if (typeof res === 'object' && res !== null) {
-    message = res;
-  }
-}
-
+      if (typeof res === 'string') {
+        message = res;
+      } else {
+        message = res;
+      }
+    }
 
     response.status(status).json({
       success: false,

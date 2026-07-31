@@ -10,12 +10,14 @@ export class TaxTaskRepository {
     return this.prisma.taxTask.create({ data });
   }
 
-  async findAll(userId: string) {
+  async findAll(userId: string, includeDeleted: boolean = false, page: number = 1, pageSize: number = 10) {
     return this.prisma.taxTask.findMany({
       where: {
         userId,
-        deletedAt: null,
+        deletedAt: includeDeleted ? undefined : null,
       },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     });
   }
 
@@ -29,9 +31,9 @@ export class TaxTaskRepository {
     });
   }
 
-  async update(id: string, data: Prisma.TaxTaskUncheckedCreateInput) {
+  async update(id: string, userId: string, data: Prisma.TaxTaskUncheckedUpdateInput) {
     return this.prisma.taxTask.update({
-      where: { id },
+      where: { id, userId },
       data,
     });
   }

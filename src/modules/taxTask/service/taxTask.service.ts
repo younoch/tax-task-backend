@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service'; // using your alias
 import { CreateTaxDto } from '../dto/create-tax.dto';
+import { UpdateTaxDto } from '../dto/update-tax.dto';
 import { TaxTaskRepository } from '../repository/taxTask.repository';
 
 @Injectable()
@@ -36,8 +41,18 @@ export class TaxTaskService {
   }
 
   // ✅ 3. Get All
-  async findAll(userId: string) {
-    return this.taxTaskRepository.findAll(userId);
+  async findAll(
+    userId: string,
+    includeDeleted: boolean = false,
+    page: number = 1,
+    pageSize: number = 10,
+  ) {
+    return this.taxTaskRepository.findAll(
+      userId,
+      includeDeleted,
+      page,
+      pageSize,
+    );
   }
 
   // ✅ 4. Get One
@@ -46,13 +61,23 @@ export class TaxTaskService {
   }
 
   // ✅ 5. Update
-  async update(id: string, dto: CreateTaxDto, userId: string) {
-    const result = this.calculateTax(dto);
+  async update(id: string, dto: UpdateTaxDto, userId: string) {
+    const existing = await this.taxTaskRepository.findById(id, userId);
+    if (!existing) {
+      throw new NotFoundException('Tax task not found');
+    }
 
-    return this.taxTaskRepository.update(id, {
-      ...dto,
+    const merged = {
+      income: dto.income ?? existing.income,
+      taxRate: dto.taxRate ?? existing.taxRate,
+      expenses: dto.expenses ?? existing.expenses,
+    };
+
+    const result = this.calculateTax(merged);
+
+    return this.taxTaskRepository.update(id, userId, {
+      ...merged,
       ...result,
-      userId
     });
   }
 
@@ -63,6 +88,13 @@ export class TaxTaskService {
 
   // ✅ 7. Restore
   async restore(id: string, userId: string) {
+    const existing = await this.taxTaskRepository.findById(id, userId);
+    if (!existing) {
+      throw new NotFoundException('Tax task not found');
+    }
+    if (!existing.deletedAt) {
+      throw new BadRequestException('Tax task is already active');
+    }
     return this.taxTaskRepository.restore(id, userId);
   }
 }

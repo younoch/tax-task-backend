@@ -1,4 +1,15 @@
-import { Controller, Post, Body, Get, Patch, Delete, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { TaxTaskService } from '../service/taxTask.service';
 import { CreateTaxDto } from '../dto/create-tax.dto';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -7,6 +18,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { JwtUser } from '@/common/types/jwt-user.type';
+import { UpdateTaxDto } from '../dto/update-tax.dto';
 
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
@@ -33,8 +45,19 @@ export class TaxTaskController {
   @Get()
   @ApiOperation({ summary: 'Get all tax tasks' })
   @ApiResponse({ status: 200, description: 'List of tax tasks' })
-  findAll(@CurrentUser() user: JwtUser) {
-    return this.taxTaskService.findAll(user.userId);
+  findAll(
+    @CurrentUser() user: JwtUser,
+    @Query('includeDeleted') includeDeleted: boolean = false,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe)
+    pageSize: number = 10,
+  ) {
+    return this.taxTaskService.findAll(
+      user.userId,
+      includeDeleted,
+      page,
+      pageSize,
+    );
   }
 
   @Get(':id')
@@ -46,9 +69,13 @@ export class TaxTaskController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a tax task by ID' })
-  @ApiBody({ type: CreateTaxDto })
+  @ApiBody({ type: UpdateTaxDto })
   @ApiResponse({ status: 200, description: 'Tax task updated successfully' })
-  update(@CurrentUser() user: JwtUser, @Param('id') id: string, @Body() body: CreateTaxDto) {
+  update(
+    @CurrentUser() user: JwtUser,
+    @Param('id') id: string,
+    @Body() body: UpdateTaxDto,
+  ) {
     return this.taxTaskService.update(id, body, user.userId);
   }
 
