@@ -7,8 +7,6 @@ import {
   Delete,
   Param,
   Query,
-  ParseIntPipe,
-  DefaultValuePipe,
 } from '@nestjs/common';
 import { TaxTaskService } from '../service/taxTask.service';
 import { CreateTaxDto } from '../dto/create-tax.dto';
@@ -19,6 +17,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { JwtUser } from '@/common/types/jwt-user.type';
 import { UpdateTaxDto } from '../dto/update-tax.dto';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
@@ -45,18 +44,10 @@ export class TaxTaskController {
   @Get()
   @ApiOperation({ summary: 'Get all tax tasks' })
   @ApiResponse({ status: 200, description: 'List of tax tasks' })
-  findAll(
-    @CurrentUser() user: JwtUser,
-    @Query('includeDeleted') includeDeleted: boolean = false,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe)
-    pageSize: number = 10,
-  ) {
+  findAll(@CurrentUser() user: JwtUser, @Query() query: PaginationQueryDto) {
     return this.taxTaskService.findAll(
       user.userId,
-      includeDeleted,
-      page,
-      pageSize,
+      query,
     );
   }
 

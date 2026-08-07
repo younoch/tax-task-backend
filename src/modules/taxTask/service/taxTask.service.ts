@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '@/common/prisma/prisma.service'; // using your alias
 import { CreateTaxDto } from '../dto/create-tax.dto';
 import { UpdateTaxDto } from '../dto/update-tax.dto';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 import { TaxTaskRepository } from '../repository/taxTask.repository';
 
 @Injectable()
@@ -43,15 +44,11 @@ export class TaxTaskService {
   // ✅ 3. Get All
   async findAll(
     userId: string,
-    includeDeleted: boolean = false,
-    page: number = 1,
-    pageSize: number = 10,
+    pagination: PaginationQueryDto,
   ) {
     return this.taxTaskRepository.findAll(
       userId,
-      includeDeleted,
-      page,
-      pageSize,
+      pagination
     );
   }
 

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
-
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { paginate } from '@/common/helpers/paginate.helper';
 @Injectable()
 export class TaxTaskRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -10,15 +11,26 @@ export class TaxTaskRepository {
     return this.prisma.taxTask.create({ data });
   }
 
-  async findAll(userId: string, includeDeleted: boolean = false, page: number = 1, pageSize: number = 10) {
-    return this.prisma.taxTask.findMany({
-      where: {
-        userId,
-        deletedAt: includeDeleted ? undefined : null,
-      },
-      take: pageSize,
-      skip: (page - 1) * pageSize,
-    });
+  async findAll(
+    userId: string,
+    query: PaginationQueryDto,
+  ) {
+    const where = {
+      userId,
+      deletedAt: query.includeDeleted ? undefined : null,
+    };
+
+    return paginate(
+      () =>
+        this.prisma.taxTask.findMany({
+          where,
+          skip: query.skip,
+          take: query.pageSize,
+        }),
+      () => this.prisma.taxTask.count({ where }),
+      query.page,
+      query.pageSize,
+    );
   }
 
   async findById(id: string, userId: string) {
@@ -31,7 +43,11 @@ export class TaxTaskRepository {
     });
   }
 
-  async update(id: string, userId: string, data: Prisma.TaxTaskUncheckedUpdateInput) {
+  async update(
+    id: string,
+    userId: string,
+    data: Prisma.TaxTaskUncheckedUpdateInput,
+  ) {
     return this.prisma.taxTask.update({
       where: { id, userId },
       data,

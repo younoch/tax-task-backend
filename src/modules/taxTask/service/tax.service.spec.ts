@@ -40,17 +40,13 @@ describe('TaxTaskService', () => {
     mockTaxTaskRepository.findAll.mockResolvedValue(fakeResult);
 
     const userId = 'user123';
-    const includeDeleted = false;
-    const page = 1;
-    const pageSize = 10;
+    const pagination = { page: 1, pageSize: 10, includeDeleted: false, skip: 0 };
 
-    const result = await service.findAll(userId, includeDeleted, page, pageSize);
+    const result = await service.findAll(userId, pagination);
 
     expect(mockTaxTaskRepository.findAll).toHaveBeenCalledWith(
       userId,
-      includeDeleted,
-      page,
-      pageSize,
+      pagination,
     );
 
     expect(result).toEqual(fakeResult);
