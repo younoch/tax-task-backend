@@ -8,9 +8,11 @@ import {
 
 import { Response, Request } from 'express';
 import { Prisma } from '@prisma/client';
+import { Logger } from 'nestjs-pino/Logger';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  constructor(private logger: Logger) {}
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -23,16 +25,27 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (exception.code === 'P2025') {
         status = HttpStatus.NOT_FOUND;
         message = 'Record not found';
+      } else if (exception.code === 'P2002') {
+        status = HttpStatus.CONFLICT;
+        message = 'A record with this value already exists';
+      } else {
+        this.logger.error(
+          {
+            action: 'unhandled_prisma_error',
+            code: exception.code,
+          },
+          exception.message,
+        );
       }
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
-
-      if (typeof res === 'string') {
-        message = res;
-      } else {
-        message = res;
-      }
+      message = typeof res === 'string' ? res : res;
+    } else {
+      this.logger.error(
+        { action: 'unhandled_error' },
+        exception instanceof Error ? exception.message : String(exception),
+      );
     }
 
     response.status(status).json({

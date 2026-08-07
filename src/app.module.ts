@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule, Params } from 'nestjs-pino';
 import { IncomingMessage, ServerResponse } from 'http';
 import { ScheduleModule } from '@nestjs/schedule';
+import { APP_FILTER } from '@nestjs/core';
 
 import { TaxTaskModule } from './modules/taxTask/taxTask.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -11,12 +12,15 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import appConfig from './config/app.config';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig],
+      validate: validateEnv,
     }),
 
     LoggerModule.forRootAsync({
@@ -67,6 +71,12 @@ import appConfig from './config/app.config';
     PrismaModule,
     HealthModule,
     CleanupModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
   ],
 })
 export class AppModule {}
