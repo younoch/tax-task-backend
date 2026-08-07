@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule, Params } from 'nestjs-pino';
 import { IncomingMessage, ServerResponse } from 'http';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import { TaxTaskModule } from './modules/taxTask/taxTask.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -22,6 +23,12 @@ import { validateEnv } from './config/env.validation';
       load: [appConfig],
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,   // 60 সেকেন্ড (milliseconds-এ)
+        limit: 100,   // এই সময়ে সর্বোচ্চ 100টা request per IP
+      },
+    ]),
 
     LoggerModule.forRootAsync({
       inject: [ConfigService],
@@ -76,6 +83,10 @@ import { validateEnv } from './config/env.validation';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
