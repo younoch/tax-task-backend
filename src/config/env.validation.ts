@@ -1,5 +1,5 @@
-import { z } from 'zod';
-
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+import { z, ZodError } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
@@ -28,6 +28,18 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
+
+  THROTTLE_TTL: z
+    .string()
+    .default('60000')
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().int().positive()),
+
+  THROTTLE_LIMIT: z
+    .string()
+    .default('100')
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().int().positive()),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -36,7 +48,9 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
   const result = envSchema.safeParse(config);
 
   if (!result.success) {
-    const formattedErrors = result.error.issues
+    const zodError: ZodError = result.error;
+
+    const formattedErrors = zodError.issues
       .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
       .join('\n');
 
